@@ -29,9 +29,9 @@ dsh plugin --profile web add github:guiyuan77/dsh-reader
 | **EPUB** | 自写 ZIP 解析（中央目录 + `DecompressionStream`），读 OPF 元数据与 spine 分章，插图正常显示；书内 `<style>` / `<script>` / 事件属性一律剥掉 |
 | **TXT** | UTF-8 严格解码失败时回退 GB18030，保留原始换行 |
 | **Markdown** | 标题 / 列表 / 代码块 / 行内码 / 粗体 / 引用 |
-| **HTML** | 解析后清洗掉脚本与颜色声明，按当前主题排版，不外链 |
+| **HTML** | `DOMParser` 解析后剥掉脚本、样式与事件属性，按当前主题排版 |
 | **续读** | 按「工作区 + 书籍路径」记住章节与滚动位置，切书、收起面板、刷新页面都会先落盘 |
-| **主题** | 跟随 dsh / 亮色 / 夜间 / 纸白，深色下写死的黑字自动回落为主题色 |
+| **主题** | 跟随 dsh / 纸白 / 护眼 / 夜间（默认跟随），深色下书里写死的黑字自动回落为主题色 |
 | **老板键** | 面板内按 <kbd>Esc</kbd> 直接收起整个右侧栏，会话区不受影响；再展开时标签、章节、滚动位置都还在 |
 
 ## 快捷键
@@ -70,3 +70,5 @@ dsh plugin --profile web add github:guiyuan77/dsh-reader
 ## 许可
 
 MIT，见 [LICENSE](LICENSE)。
+
+界面截图见 [screenshots.json](screenshots.json)：EPUB 阅读、书架、Markdown、阅读设置浮层、夜间主题。
