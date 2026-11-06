@@ -1,0 +1,18 @@
+# 依赖与安装产物
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+*.tgz
+
+# 生成物：node scripts/make-epub.mjs 产出，不入库
+samples/demo.epub
+
+# 本机调试产物（.dsh-web.out 含启动 token，绝不能提交）
+.dsh-web.out
+*.log
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

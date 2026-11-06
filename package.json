@@ -1,0 +1,48 @@
+{
+  "name": "dsh-reader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workspace reader for DeepSeek Harness: browses the workspaces registered in dsh and renders EPUB/TXT/MD/HTML/PDF with a one-key boss screen.",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "public",
+    "scripts",
+    "assets",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "sample": "node scripts/make-epub.mjs",
+    "harness": "node scripts/harness.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "engines": {
+    "dsh": ">=0.2.0-rc.1 <0.3.0-0 || >=0.2.1-rc.1 <0.3.0-0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guiyuan77/dsh-reader.git"
+  }
+}

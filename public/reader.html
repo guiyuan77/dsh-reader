@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Build Log</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23222'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#fbfbf9; --fg:#23262b; --dim:#8a8f98; --line:#e5e4df;
+    --accent:#3b6ea5; --panel:#f4f4f1; --sel:#e8eef6;
+    --reading-size:19px; --reading-line:1.85; --reading-width:44em;
+  }
+  html[data-theme="sepia"]{ --bg:#f5efe1; --fg:#3a3226; --dim:#8d8474; --line:#e3dac6; --panel:#efe8d8; --sel:#e7dcc4; --accent:#8a6a3a; }
+  html[data-theme="dark"]{ --bg:#1b1d21; --fg:#c9cdd4; --dim:#7b828c; --line:#2c3037; --panel:#22252a; --sel:#2f343c; --accent:#7aa7d9; }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg); color:var(--fg);
+    font:14px/1.5 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    overflow:hidden;
+  }
+  body.boss{background:#111}
+  #app{display:flex;height:100%}
+  body.boss #app{display:none}
+
+  /* ---------- 书架 ---------- */
+  #shelf{width:288px;flex:0 0 288px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  #shelf>header{display:flex;gap:6px;align-items:center;padding:10px;border-bottom:1px solid var(--line)}
+  #shelf>header select{flex:1;min-width:0;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12px}
+  #shelf>header button{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:6px;padding:5px 8px;cursor:pointer;font-size:12px}
+  #shelf>header button.on{color:var(--accent);border-color:var(--accent)}
+  #shelfPath{padding:6px 12px;color:var(--dim);font-size:12px;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:29px}
+  #shelfPath a{color:var(--dim);cursor:pointer;text-decoration:none}
+  #shelfPath a:hover{color:var(--accent)}
+  #shelfList{flex:1;overflow:auto;padding:4px 0}
+  .row{display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;font-size:13px;border-left:2px solid transparent}
+  .row:hover{background:var(--sel)}
+  .row.active{border-left-color:var(--accent);background:var(--sel)}
+  .row .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row.dir .name{color:var(--fg)}
+  .row .meta{color:var(--dim);font-size:11px;flex:0 0 auto}
+  .empty{padding:18px 14px;color:var(--dim);font-size:12px;line-height:1.7}
+
+  /* ---------- 正文 ---------- */
+  #stage{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+  #topbar{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:12px;color:var(--dim)}
+  #topbar button{background:transparent;border:1px solid var(--line);border-radius:6px;color:var(--dim);cursor:pointer;padding:3px 9px}
+  #topbar button:disabled{opacity:.35;cursor:default}
+  #bookTitle{color:var(--fg);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #topbar .spacer{flex:1}
+  #view{flex:1;overflow:auto;padding:32px 24px 80px;scroll-behavior:auto}
+  .paper{max-width:var(--reading-width);margin:0 auto;font-size:var(--reading-size);line-height:var(--reading-line);
+    font-family:Georgia,"Songti SC","SimSun",serif;word-break:break-word}
+  .paper p{margin:0 0 1em;text-indent:2em}
+  .paper h1,.paper h2,.paper h3{font-family:inherit;line-height:1.4;margin:1.4em 0 .8em;font-weight:600}
+  .paper img{max-width:100%;height:auto;display:block;margin:1em auto;border-radius:4px}
+  .paper blockquote{margin:1em 0;padding:.2em 0 .2em 1em;border-left:3px solid var(--line);color:var(--dim)}
+  .paper pre{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;
+    font:12px/1.6 "Cascadia Mono",Consolas,monospace;text-indent:0}
+  .paper code{font:12px/1.6 "Cascadia Mono",Consolas,monospace;background:var(--panel);border-radius:3px;padding:1px 4px}
+  .paper a{color:var(--accent)}
+  .paper hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+  .paper ul,.paper ol{margin:0 0 1em;padding-left:1.8em}
+  .paper li{margin:.3em 0}
+  .toc-drawer{max-width:var(--reading-width);margin:0 auto}
+  .toc-drawer .row{border:0;padding:5px 8px;border-radius:5px}
+
+  /* ---------- 老板键：伪装屏 ---------- */
+  #decoy{position:fixed;inset:0;background:#0c0c0c;color:#b9c4b0;display:none;
+    font:12px/1.65 "Cascadia Mono",Consolas,"Courier New",monospace;overflow:hidden}
+  body.boss #decoy{display:block}
+  #decoy .bar{height:28px;background:#1a1a1a;border-bottom:1px solid #262626;display:flex;align-items:center;
+    gap:14px;padding:0 12px;color:#7d8778;font-size:11px}
+  #decoy .bar b{color:#c9d3c0;font-weight:500}
+  #decoyLog{padding:10px 14px;margin:0;white-space:pre-wrap;height:calc(100% - 28px);overflow:hidden}
+  #decoyLog .ok{color:#6fbf73} #decoyLog .warn{color:#d0a95a} #decoyLog .err{color:#d06a5a} #decoyLog .dim{color:#5d665a}
+
+  /* ---------- 设置面板 ---------- */
+  #panel{position:fixed;top:52px;left:300px;z-index:20;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:14px;width:268px;box-shadow:0 10px 30px rgba(0,0,0,.14);font-size:12px}
+  #panel h4{margin:0 0 10px;font-size:12px;color:var(--dim);font-weight:600;letter-spacing:.04em}
+  #panel label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;color:var(--fg)}
+  #panel button{background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 9px;
+    color:var(--fg);cursor:pointer;font-size:12px}
+  #panel button.on{border-color:var(--accent);color:var(--accent)}
+  #panel .hint{color:var(--dim);margin-top:10px;line-height:1.6;border-top:1px solid var(--line);padding-top:8px}
+  kbd{background:var(--bg);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;font-size:11px}
+
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000c;color:#fff;
+    padding:8px 14px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .18s;pointer-events:none;z-index:40}
+  #toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div id="decoy">
+  <div class="bar"><b>build@workspace</b> <span id="decoyBranch">refs/heads/main</span> <span id="decoyTime"></span></div>
+  <pre id="decoyLog"></pre>
+</div>
+
+<div id="app">
+  <aside id="shelf">
+    <header>
+      <select id="wsSel" title="工作区"></select>
+      <button id="btnBooks" class="on" title="书架">书架</button>
+      <button id="btnTree" title="目录">目录</button>
+      <button id="btnSettings" title="阅读设置">Aa</button>
+    </header>
+    <div id="shelfPath"></div>
+    <div id="shelfList"></div>
+  </aside>
+  <main id="stage">
+    <div id="topbar">
+      <button id="btnPrev" disabled>‹</button>
+      <button id="btnNext" disabled>›</button>
+      <div id="bookTitle">未选择书籍</div>
+      <div class="spacer"></div>
+      <span id="progress"></span>
+    </div>
+    <div id="view"><div class="paper"><p style="text-indent:0;color:var(--dim)">从左侧书架选择一本书。</p></div></div>
+  </main>
+</div>
+
+<div id="panel" hidden>
+  <h4>阅读设置</h4>
+  <label>主题 <span>
+    <button data-theme="light">纸白</button>
+    <button data-theme="sepia">护眼</button>
+    <button data-theme="dark">夜间</button>
+  </span></label>
+  <label>字号 <span>
+    <button data-size="-1">A-</button>
+    <button data-size="1">A+</button>
+  </span></label>
+  <label>行距 <span>
+    <button data-line="-1">紧</button>
+    <button data-line="1">松</button>
+  </span></label>
+  <div class="hint">
+    老板键 <kbd>Esc</kbd> 切换伪装屏；再按一次回来。<br>
+    <kbd>←</kbd> <kbd>→</kbd> 翻页 · <kbd>Ctrl</kbd>+<kbd>D</kbd> 标为已读。
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+  'use strict'
+
+  var LS = window.localStorage
+  var state = { roots: [], ws: null, mode: 'books', cwd: '', entries: [], books: [],
+                book: null, zip: null, chapters: [], chapter: 0, boss: false, panel: false }
+
+  var $ = function (id) { return document.getElementById(id) }
+  var view = $('view'), shelfList = $('shelfList'), shelfPath = $('shelfPath')
+
+  /* ------------------------------------------------------------------ 基础工具 */
+
+  function toast(text) {
+    var el = $('toast'); el.textContent = text; el.classList.add('on')
+    clearTimeout(toast._t); toast._t = setTimeout(function () { el.classList.remove('on') }, 1800)
+  }
+
+  function fmtSize(n) {
+    if (!n && n !== 0) return ''
+    if (n < 1024) return n + 'B'
+    if (n < 1024 * 1024) return (n / 1024).toFixed(0) + 'K'
+    return (n / 1024 / 1024).toFixed(1) + 'M'
+  }
+
+  function api(path) {
+    return fetch('/reader/api/' + path, { cache: 'no-store' }).then(function (r) {
+      return r.json().then(function (body) {
+        if (!r.ok) throw new Error(body && body.error ? body.error : ('HTTP ' + r.status))
+        return body
+      })
+    })
+  }
+
+  function dirname(p) { var i = p.lastIndexOf('/'); return i < 0 ? '' : p.slice(0, i) }
+  function basename(p) { var i = p.lastIndexOf('/'); return i < 0 ? p : p.slice(i + 1) }
+
+  function resolvePath(base, href) {
+    var clean = String(href || '').split('#')[0].split('?')[0]
+    try { clean = decodeURIComponent(clean) } catch (e) { /* 保留原样 */ }
+    if (clean.charAt(0) === '/') return normalize(clean.slice(1))
+    return normalize((base ? base + '/' : '') + clean)
+  }
+
+  function normalize(p) {
+    var out = []
+    var parts = p.split('/')
+    for (var i = 0; i < parts.length; i++) {
+      var s = parts[i]
+      if (s === '' || s === '.') continue
+      if (s === '..') { out.pop(); continue }
+      out.push(s)
+    }
+    return out.join('/')
+  }
+
+  /* ------------------------------------------------------------------ 老板键 */
+
+  var decoyTimer = null, decoyStep = 0
+  var DECOY_FILES = [
+    'src/map/render/layer-adapter.ts', 'src/map/render/tile-cache.ts',
+    'src/map/render/basemap-profile.ts', 'src/map/interaction/pick-bridge.ts',
+    'src/store/parking-slot.ts', 'src/api/location-realm.ts',
+    'src/components/map/label-layer.vue', 'src/utils/geo/area-id.ts',
+  ]
+  var DECOY_COMMANDS = [
+    'git status --short', 'npm run lint --silent', 'npm run build --silent',
+    'node scripts/perf-smoke.mjs --hz 30', 'git log --oneline -3',
+    'node scripts/check-bundle.mjs', 'npx tsc --noEmit -p tsconfig.app.json',
+  ]
+
+  function pick(list) { return list[Math.floor(Math.random() * list.length)] }
+  function jitter(base, spread) { return (base + (Math.random() - 0.5) * spread).toFixed(1) }
+
+  /** 程序化生成：每次内容都不同，避免固定循环被一眼看穿。 */
+  function nextDecoyLine() {
+    decoyStep++
+    var roll = Math.random()
+    if (decoyStep % 9 === 0 || roll < 0.06) return ['dim', '> ' + pick(DECOY_COMMANDS)]
+    if (roll < 0.24) return ['warn', ' M ' + pick(DECOY_FILES)]
+    if (roll < 0.36) return ['ok', 'map hz ' + jitter(30, 2) + ' | cpu ' + jitter(11, 3) + 'ms | dropped ' + Math.floor(Math.random() * 2)]
+    if (roll < 0.48) return ['ok', 'dist/assets/index-' + Math.random().toString(16).slice(2, 8) + '.js  ' + jitter(410, 40) + ' kB │ gzip: ' + jitter(126, 10) + ' kB']
+    if (roll < 0.58) return ['dim', 'transforming modules ... (' + Math.floor(600 + Math.random() * 1300) + ')']
+    if (roll < 0.66) return ['ok', '✓ ' + Math.floor(1700 + Math.random() * 200) + ' modules transformed.']
+    if (roll < 0.74) return ['ok', '✓ built in ' + jitter(8, 3) + 's']
+    if (roll < 0.80) return ['warn', '(!) Some chunks are larger than 500 kB after minification.']
+    if (roll < 0.86) return ['ok', 'bundle budget ok (max 720 kB)']
+    if (roll < 0.90) return ['ok', 'eslint: no problems found']
+    if (roll < 0.94) return ['err', 'Error: connect ETIMEDOUT 10.20.31.' + Math.floor(Math.random() * 250) + ':8080']
+    if (roll < 0.97) return ['warn', '[vite] hmr update /src/map/render/' + pick(['layer-adapter', 'tile-cache', 'label-layer']) + '.ts']
+    return ['dim', 'cache hit ratio ' + jitter(92, 6) + '% | tiles ' + Math.floor(200 + Math.random() * 400)]
+  }
+
+  function decoyTick() {
+    var log = $('decoyLog')
+    var item = nextDecoyLine()
+    var stamp = new Date().toTimeString().slice(0, 8)
+    var line = document.createElement('div')
+    line.className = item[0]
+    line.textContent = '[' + stamp + '] ' + item[1]
+    log.appendChild(line)
+    while (log.childElementCount > 120) log.removeChild(log.firstChild)
+    $('decoyTime').textContent = stamp
+  }
+
+  function setBoss(on) {
+    state.boss = on
+    document.body.classList.toggle('boss', on)
+    document.title = on ? 'Build Log' : (state.book ? state.book.title : 'Build Log')
+    if (on) {
+      if (!decoyTimer) { decoyTick(); decoyTimer = setInterval(decoyTick, 1400) }
+    } else if (decoyTimer) {
+      clearInterval(decoyTimer); decoyTimer = null
+    }
+  }
+
+  /* ------------------------------------------------------------------ 伪装屏初始化 */
+
+  (function () {
+    var branch = ['main', 'release/2026.11', 'feature/map-lod', 'perf/tile-cache'][new Date().getDate() % 4]
+    $('decoyBranch').textContent = 'refs/heads/' + branch
+    for (var i = 0; i < 6; i++) decoyTick()
+  })()
+
+  /* ------------------------------------------------------------------ ZIP / EPUB */
+
+  function findEocd(u8) {
+    for (var i = u8.length - 22; i >= Math.max(0, u8.length - 22 - 65535); i--) {
+      if (u8[i] === 0x50 && u8[i + 1] === 0x4b && u8[i + 2] === 0x05 && u8[i + 3] === 0x06) return i
+    }
+    return -1
+  }
+
+  function unzip(bytes) {
+    var u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
+    var dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength)
+    var eocd = findEocd(u8)
+    if (eocd < 0) throw new Error('不是有效的 EPUB/ZIP（未找到中央目录）')
+
+    var count = dv.getUint16(eocd + 10, true)
+    var offset = dv.getUint32(eocd + 16, true)
+    var entries = new Map()
+    var decoder = new TextDecoder('utf-8')
+
+    for (var i = 0; i < count; i++) {
+      if (offset + 46 > u8.length || dv.getUint32(offset, true) !== 0x02014b50) break
+      var nameLen = dv.getUint16(offset + 28, true)
+      var extraLen = dv.getUint16(offset + 30, true)
+      var commentLen = dv.getUint16(offset + 32, true)
+      var name = decoder.decode(u8.subarray(offset + 46, offset + 46 + nameLen))
+      entries.set(name, {
+        name: name,
+        method: dv.getUint16(offset + 10, true),
+        compressed: dv.getUint32(offset + 20, true),
+        size: dv.getUint32(offset + 24, true),
+        local: dv.getUint32(offset + 42, true),
+      })
+      offset += 46 + nameLen + extraLen + commentLen
+    }
+    return { u8: u8, dv: dv, entries: entries }
+  }
+
+  function entryBytes(zip, name) {
+    var entry = zip.entries.get(name)
+    if (!entry) return Promise.resolve(null)
+    var lh = entry.local
+    var nameLen = zip.dv.getUint16(lh + 26, true)
+    var extraLen = zip.dv.getUint16(lh + 28, true)
+    var start = lh + 30 + nameLen + extraLen
+    var raw = zip.u8.subarray(start, start + entry.compressed)
+    if (entry.method === 0) return Promise.resolve(raw)
+    if (entry.method !== 8) return Promise.reject(new Error('不支持的压缩方式 ' + entry.method))
+    var stream = new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))
+    return new Response(stream).arrayBuffer().then(function (buffer) { return new Uint8Array(buffer) })
+  }
+
+  function entryText(zip, name) {
+    return entryBytes(zip, name).then(function (bytes) {
+      return bytes === null ? null : new TextDecoder('utf-8').decode(bytes)
+    })
+  }
+
+  function xmlDoc(text) {
+    var doc = new DOMParser().parseFromString(text, 'application/xml')
+    if (doc.querySelector('parsererror')) doc = new DOMParser().parseFromString(text, 'text/html')
+    return doc
+  }
+
+  function attrNS(el, localName) {
+    if (!el) return null
+    if (el.getAttribute(localName)) return el.getAttribute(localName)
+    for (var i = 0; i < el.attributes.length; i++) {
+      var a = el.attributes[i]
+      if (a.localName === localName) return a.value
+    }
+    return null
+  }
+
+  function parseEpub(zip) {
+    return entryText(zip, 'META-INF/container.xml').then(function (container) {
+      if (!container) throw new Error('缺少 META-INF/container.xml')
+      var rootFile = xmlDoc(container).querySelector('rootfile')
+      var opfPath = attrNS(rootFile, 'full-path')
+      if (!opfPath) throw new Error('container.xml 未声明 rootfile')
+      return entryText(zip, normalize(opfPath)).then(function (opfText) {
+        if (!opfText) throw new Error('缺少 OPF：' + opfPath)
+        var opf = xmlDoc(opfText)
+        var opfDir = dirname(normalize(opfPath))
+
+        var metaEls = opf.querySelectorAll('metadata > *')
+        var meta = {}
+        for (var i = 0; i < metaEls.length; i++) {
+          var key = metaEls[i].localName
+          if (!meta[key]) meta[key] = (metaEls[i].textContent || '').trim()
+        }
+
+        var manifest = new Map()
+        var items = opf.querySelectorAll('manifest > item')
+        for (var j = 0; j < items.length; j++) {
+          var item = items[j]
+          var id = item.getAttribute('id')
+          if (!id) continue
+          manifest.set(id, {
+            id: id,
+            href: resolvePath(opfDir, item.getAttribute('href')),
+            type: (item.getAttribute('media-type') || '').toLowerCase(),
+            props: item.getAttribute('properties') || '',
+          })
+        }
+
+        var chapters = []
+        var refs = opf.querySelectorAll('spine > itemref')
+        for (var k = 0; k < refs.length; k++) {
+          var ref = refs[k]
+          if ((ref.getAttribute('linear') || '').toLowerCase() === 'no') continue
+          var target = manifest.get(ref.getAttribute('idref'))
+          if (!target) continue
+          if (target.type && target.type.indexOf('html') < 0) continue
+          chapters.push(target)
+        }
+        if (chapters.length === 0) throw new Error('spine 为空，无法分章')
+
+        var navItem = null
+        manifest.forEach(function (entry) { if (entry.props.indexOf('nav') >= 0) navItem = entry })
+        var ncxItem = null
+        manifest.forEach(function (entry) { if (entry.type === 'application/x-dtbncx+xml') ncxItem = entry })
+
+        return buildToc(zip, navItem, ncxItem, opfDir).then(function (toc) {
+          return {
+            title: meta.title || basename(opfPath),
+            creator: meta.creator || '',
+            chapters: chapters,
+            toc: toc || [],
+          }
+        })
+      })
+    })
+  }
+
+  function buildToc(zip, navItem, ncxItem, opfDir) {
+    var source = navItem || ncxItem
+    if (!source) return Promise.resolve([])
+    return entryText(zip, source.href).then(function (text) {
+      if (!text) return []
+      var doc = xmlDoc(text)
+      var links = []
+      var base = dirname(source.href)
+      if (navItem) {
+        var nav = doc.querySelector('nav[epub\\:type="toc"], nav[*|type="toc"], nav')
+        var anchors = nav ? nav.querySelectorAll('a[href]') : []
+        for (var i = 0; i < anchors.length; i++) {
+          links.push({ label: (anchors[i].textContent || '').trim(), href: resolvePath(base, anchors[i].getAttribute('href')) })
+        }
+      } else {
+        var points = doc.querySelectorAll('navPoint')
+        for (var j = 0; j < points.length; j++) {
+          var label = points[j].querySelector('navLabel > text, text')
+          var content = points[j].querySelector('content')
+          if (!content) continue
+          links.push({ label: (label ? label.textContent : '').trim(), href: resolvePath(base, content.getAttribute('src')) })
+        }
+      }
+      return links.filter(function (link) { return link.label && link.href })
+    })
+  }
+
+  var MIME_BY_EXT = {
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+    webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp',
+  }
+
+  function sanitize(root) {
+    var kill = root.querySelectorAll('script,iframe,object,embed,link,style,base,form,input,button,audio,video')
+    for (var i = 0; i < kill.length; i++) kill[i].remove()
+    var all = root.querySelectorAll('*')
+    for (var j = 0; j < all.length; j++) {
+      var attrs = Array.prototype.slice.call(all[j].attributes)
+      for (var k = 0; k < attrs.length; k++) {
+        var name = attrs[k].name
+        if (/^on/i.test(name)) all[j].removeAttribute(name)
+        if (name === 'href' && /^javascript:/i.test(attrs[k].value)) all[j].removeAttribute(name)
+      }
+    }
+    return root
+  }
+
+  function hydrateImages(zip, root, baseDir) {
+    var nodes = root.querySelectorAll('img,image')
+    var jobs = []
+    for (var i = 0; i < nodes.length; i++) {
+      (function (node) {
+        var href = node.getAttribute('src') || attrNS(node, 'href')
+        if (!href) return
+        var target = resolvePath(baseDir, href)
+        jobs.push(entryBytes(zip, target).then(function (bytes) {
+          if (!bytes) { node.remove(); return }
+          var ext = (target.split('.').pop() || '').toLowerCase()
+          var blob = new Blob([bytes], { type: MIME_BY_EXT[ext] || 'application/octet-stream' })
+          var url = URL.createObjectURL(blob)
+          if (node.tagName.toLowerCase() === 'image') {
+            node.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', url)
+            node.setAttribute('href', url)
+          } else {
+            node.setAttribute('src', url)
+          }
+        }).catch(function () { }))
+      })(nodes[i])
+    }
+    return Promise.all(jobs)
+  }
+
+  /* ------------------------------------------------------------------ 渲染器 */
+
+  function setPaper(nodes) {
+    var paper = document.createElement('div')
+    paper.className = 'paper'
+    for (var i = 0; i < nodes.length; i++) paper.appendChild(nodes[i])
+    view.innerHTML = ''
+    view.appendChild(paper)
+    view.scrollTop = 0
+  }
+
+  var MAX_TEXT_CHARS = 600000
+
+  function renderParagraphs(text) {
+    var truncated = text.length > MAX_TEXT_CHARS
+    if (truncated) text = text.slice(0, MAX_TEXT_CHARS)
+    var blocks = text.replace(/\r\n?/g, '\n').split(/\n{2,}/)
+    var nodes = []
+    for (var i = 0; i < blocks.length; i++) {
+      var chunk = blocks[i]
+      if (!chunk.trim()) continue
+      var lines = chunk.split('\n')
+      var p = document.createElement('p')
+      for (var j = 0; j < lines.length; j++) {
+        if (j > 0) p.appendChild(document.createElement('br'))
+        p.appendChild(document.createTextNode(lines[j]))
+      }
+      nodes.push(p)
+    }
+    if (truncated) {
+      var note = document.createElement('p')
+      note.style.textIndent = '0'
+      note.style.color = 'var(--dim)'
+      note.textContent = '（文件较大，仅显示前 ' + MAX_TEXT_CHARS + ' 个字符）'
+      nodes.push(note)
+    }
+    return nodes
+  }
+
+  function renderMarkdown(text) {
+    var escaped = text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/^###### (.*)$/gm, '<h3>$1</h3>')
+      .replace(/^##### (.*)$/gm, '<h3>$1</h3>')
+      .replace(/^#### (.*)$/gm, '<h3>$1</h3>')
+      .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+      .replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>')
+      .replace(/^\s*[-*+] (.*)$/gm, '<li>$1</li>')
+      .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n{2,}/g, '</p><p>')
+    var html = '<p>' + escaped
+    html = html.replace(/(<li>[\s\S]*?<\/li>)+/g, function (block) { return '<ul>' + block + '</ul>' })
+    var holder = document.createElement('div')
+    holder.innerHTML = html
+    return Array.prototype.slice.call(holder.childNodes)
+  }
+
+  function decodeText(bytes) {
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes) }
+    catch (e) {
+      try { return new TextDecoder('gb18030').decode(bytes) } catch (e2) { return new TextDecoder('utf-8').decode(bytes) }
+    }
+  }
+
+  var progressKey = function () { return 'dsh-reader:pos:' + state.ws + '|' + (state.book ? state.book.path : '') }
+
+  function saveProgress() {
+    if (!state.book || !state.ws) return
+    try {
+      LS.setItem(progressKey(), JSON.stringify({
+        chapter: state.chapter,
+        ratio: view.scrollHeight > view.clientHeight ? view.scrollTop / (view.scrollHeight - view.clientHeight) : 0,
+      }))
+    } catch (e) { /* 隐身模式下忽略 */ }
+  }
+
+  function restoreProgress() {
+    try {
+      var raw = LS.getItem(progressKey())
+      if (!raw) return false
+      var saved = JSON.parse(raw)
+      if (typeof saved.chapter === 'number' && saved.chapter > 0) return saved
+      if (saved.ratio) { view.scrollTop = saved.ratio * (view.scrollHeight - view.clientHeight) }
+    } catch (e) { /* 忽略 */ }
+    return false
+  }
+
+  /* ------------------------------------------------------------------ 打开书籍 */
+
+  function openBook(path) {
+    var name = basename(path)
+    state.book = { path: path, name: name, title: name }
+    state.chapter = 0
+    $('bookTitle').textContent = name
+    document.title = name
+    view.innerHTML = '<div class="paper"><p style="text-indent:0;color:var(--dim)">载入中…</p></div>'
+
+    var url = '/reader/api/file?ws=' + encodeURIComponent(state.ws) + '&path=' + encodeURIComponent(path)
+    return fetch(url, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (b) { throw new Error(b.error || ('HTTP ' + r.status)) })
+        return r.arrayBuffer()
+      })
+      .then(function (buffer) {
+        var ext = (path.split('.').pop() || '').toLowerCase()
+        if (ext === 'epub') return openEpub(buffer)
+        var text = decodeText(new Uint8Array(buffer))
+        if (ext === 'md' || ext === 'markdown') setPaper(renderMarkdown(text))
+        else if (ext === 'html' || ext === 'htm') {
+          var doc = new DOMParser().parseFromString(text, 'text/html')
+          sanitize(doc)
+          var holder = document.createElement('div')
+          while (doc.body.firstChild) holder.appendChild(doc.body.firstChild)
+          setPaper(Array.prototype.slice.call(holder.childNodes))
+        } else setPaper(renderParagraphs(text))
+        $('btnPrev').disabled = true
+        $('btnNext').disabled = true
+        $('progress').textContent = fmtSize(buffer.byteLength)
+        restoreProgress()
+        markActive()
+        return undefined
+      })
+      .catch(function (error) {
+        view.innerHTML = ''
+        var p = document.createElement('p')
+        p.style.textIndent = '0'
+        p.style.color = 'var(--dim)'
+        p.textContent = '打开失败：' + error.message
+        var paper = document.createElement('div'); paper.className = 'paper'
+        paper.appendChild(p); view.appendChild(paper)
+      })
+  }
+
+  function openEpub(buffer) {
+    var zip
+    try { zip = unzip(buffer) } catch (error) {
+      view.innerHTML = '<div class="paper"><p style="text-indent:0;color:var(--dim)">' + error.message + '</p></div>'
+      return Promise.resolve()
+    }
+    state.zip = zip
+    return parseEpub(zip).then(function (book) {
+      state.chapters = book.chapters
+      state.book.title = book.title || state.book.name
+      state.book.creator = book.creator
+      state.book.toc = book.toc
+      document.title = state.book.title
+      $('bookTitle').textContent = state.book.creator ? (state.book.title + ' · ' + state.book.creator) : state.book.title
+      var saved = restoreProgress()
+      if (saved && saved.chapter < state.chapters.length) state.chapter = saved.chapter
+      return renderChapter()
+    })
+  }
+
+  function renderChapter() {
+    var item = state.chapters[state.chapter]
+    if (!item) return Promise.resolve()
+    $('btnPrev').disabled = state.chapter <= 0
+    $('btnNext').disabled = state.chapter >= state.chapters.length - 1
+    $('progress').textContent = (state.chapter + 1) + ' / ' + state.chapters.length
+    view.innerHTML = '<div class="paper"><p style="text-indent:0;color:var(--dim)">载入中…</p></div>'
+
+    return entryText(state.zip, item.href).then(function (html) {
+      if (html === null) throw new Error('章节缺失：' + item.href)
+      var doc = new DOMParser().parseFromString(html, 'text/html')
+      sanitize(doc)
+      return hydrateImages(state.zip, doc, dirname(item.href)).then(function () {
+        var holder = document.createElement('div')
+        while (doc.body.firstChild) holder.appendChild(doc.body.firstChild)
+        setPaper(Array.prototype.slice.call(holder.childNodes))
+        var saved = restoreProgress()
+        if (saved && saved.chapter === state.chapter && saved.ratio) {
+          view.scrollTop = saved.ratio * (view.scrollHeight - view.clientHeight)
+        }
+      })
+    }).catch(function (error) {
+      view.innerHTML = '<div class="paper"><p style="text-indent:0;color:var(--dim)">章节渲染失败：' + error.message + '</p></div>'
+    })
+  }
+
+  function gotoChapter(index) {
+    if (index < 0 || index >= state.chapters.length) return
+    state.chapter = index
+    renderChapter(); saveProgress(); markActive()
+  }
+
+  /* ------------------------------------------------------------------ 书架 */
+
+  function renderPath() {
+    if (state.mode === 'books') { shelfPath.textContent = '全部书籍'; return }
+    var parts = state.cwd ? state.cwd.split('/') : []
+    shelfPath.innerHTML = ''
+    var root = document.createElement('a'); root.textContent = '根目录'; root.onclick = function () { loadTree('') }
+    shelfPath.appendChild(root)
+    var acc = ''
+    for (var i = 0; i < parts.length; i++) {
+      acc = acc ? acc + '/' + parts[i] : parts[i]
+      shelfPath.appendChild(document.createTextNode(' / '))
+      var link = document.createElement('a'); link.textContent = parts[i]
+      ;(function (target) { link.onclick = function () { loadTree(target) } })(acc)
+      shelfPath.appendChild(link)
+    }
+  }
+
+  function markActive() {
+    var rows = shelfList.querySelectorAll('.row')
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.toggle('active', !!state.book && rows[i].dataset.path === state.book.path)
+    }
+  }
+
+  function renderBooks() {
+    shelfList.innerHTML = ''
+    renderPath()
+    if (state.books.length === 0) {
+      shelfList.innerHTML = '<div class="empty">工作区内没有找到 epub / txt / md / html / pdf。<br>把书放进工作区任意目录即可（node_modules、dist 等会被跳过）。</div>'
+      return
+    }
+    for (var i = 0; i < state.books.length; i++) {
+      ;(function (book) {
+        var row = document.createElement('div')
+        row.className = 'row'
+        row.dataset.path = book.path
+        row.title = book.path
+        var name = document.createElement('span'); name.className = 'name'; name.textContent = book.name
+        var meta = document.createElement('span'); meta.className = 'meta'; meta.textContent = fmtSize(book.size)
+        row.appendChild(name); row.appendChild(meta)
+        row.onclick = function () { openBook(book.path) }
+        shelfList.appendChild(row)
+      })(state.books[i])
+    }
+    markActive()
+  }
+
+  function renderEntries() {
+    shelfList.innerHTML = ''
+    renderPath()
+    if (state.entries.length === 0) { shelfList.innerHTML = '<div class="empty">空目录</div>'; return }
+    for (var i = 0; i < state.entries.length; i++) {
+      ;(function (entry) {
+        var row = document.createElement('div')
+        row.className = 'row' + (entry.dir ? ' dir' : '')
+        row.dataset.path = entry.dir ? '' : (state.cwd ? state.cwd + '/' + entry.name : entry.name)
+        var name = document.createElement('span'); name.className = 'name'
+        name.textContent = (entry.dir ? '▸ ' : '') + entry.name
+        var meta = document.createElement('span'); meta.className = 'meta'
+        meta.textContent = entry.dir ? '' : fmtSize(entry.size)
+        row.appendChild(name); row.appendChild(meta)
+        if (entry.dir) row.onclick = function () { loadTree(state.cwd ? state.cwd + '/' + entry.name : entry.name) }
+        else if (entry.book) row.onclick = function () { openBook(row.dataset.path) }
+        else row.style.opacity = '.45'
+        shelfList.appendChild(row)
+      })(state.entries[i])
+    }
+    markActive()
+  }
+
+  function loadBooks() {
+    state.mode = 'books'
+    $('btnBooks').classList.add('on'); $('btnTree').classList.remove('on')
+    shelfList.innerHTML = '<div class="empty">正在扫描…</div>'
+    return api('books?ws=' + encodeURIComponent(state.ws))
+      .then(function (body) { state.books = body.books; renderBooks() })
+      .catch(function (error) { shelfList.innerHTML = '<div class="empty">' + error.message + '</div>' })
+  }
+
+  function loadTree(path) {
+    state.mode = 'tree'
+    $('btnTree').classList.add('on'); $('btnBooks').classList.remove('on')
+    state.cwd = path || ''
+    shelfList.innerHTML = '<div class="empty">载入中…</div>'
+    return api('list?ws=' + encodeURIComponent(state.ws) + '&path=' + encodeURIComponent(state.cwd))
+      .then(function (body) { state.entries = body.entries; renderEntries() })
+      .catch(function (error) { shelfList.innerHTML = '<div class="empty">' + error.message + '</div>' })
+  }
+
+  function loadRoots() {
+    return api('roots').then(function (body) {
+      state.roots = body.roots
+      var sel = $('wsSel'); sel.innerHTML = ''
+      if (state.roots.length === 0) {
+        var option = document.createElement('option')
+        option.textContent = '（无工作区）'; sel.appendChild(option); sel.disabled = true
+        shelfList.innerHTML = '<div class="empty">dsh 还没有注册任何工作区。</div>'
+        return null
+      }
+      for (var i = 0; i < state.roots.length; i++) {
+        var opt = document.createElement('option')
+        opt.value = state.roots[i].path; opt.textContent = state.roots[i].title
+        sel.appendChild(opt)
+      }
+      var remembered = LS.getItem('dsh-reader:ws')
+      var exists = state.roots.some(function (root) { return root.path === remembered })
+      state.ws = exists ? remembered : state.roots[0].path
+      sel.value = state.ws
+      sel.onchange = function () {
+        state.ws = sel.value
+        try { LS.setItem('dsh-reader:ws', state.ws) } catch (e) { /* 忽略 */ }
+        loadBooks()
+      }
+      return loadBooks()
+    }).catch(function (error) {
+      shelfList.innerHTML = '<div class="empty">' + error.message + '</div>'
+    })
+  }
+
+  /* ------------------------------------------------------------------ 设置 */
+
+  function applySettings() {
+    var theme = LS.getItem('dsh-reader:theme') || 'light'
+    var size = Number(LS.getItem('dsh-reader:size') || 19)
+    var line = Number(LS.getItem('dsh-reader:line') || 185)
+    document.documentElement.setAttribute('data-theme', theme)
+    document.documentElement.style.setProperty('--reading-size', size + 'px')
+    document.documentElement.style.setProperty('--reading-line', (line / 100).toFixed(2))
+    var themeBtns = document.querySelectorAll('#panel [data-theme]')
+    for (var i = 0; i < themeBtns.length; i++) themeBtns[i].classList.toggle('on', themeBtns[i].dataset.theme === theme)
+  }
+
+  function bump(key, delta, min, max) {
+    var current = Number(LS.getItem(key) || (key === 'dsh-reader:size' ? 19 : 185))
+    var next = Math.min(max, Math.max(min, current + delta))
+    try { LS.setItem(key, String(next)) } catch (e) { /* 忽略 */ }
+    applySettings()
+  }
+
+  /* ------------------------------------------------------------------ 事件 */
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      if (state.panel) { state.panel = false; $('panel').hidden = true; return }
+      setBoss(!state.boss)
+      return
+    }
+    if (state.boss) return
+    var target = event.target
+    if (target && /input|select|textarea/i.test(target.tagName)) return
+
+    if (event.ctrlKey && (event.key === 'd' || event.key === 'D')) { event.preventDefault(); toast('已标记'); return }
+    if (event.key === 'ArrowRight' || event.key === 'j' || event.key === 'J') {
+      if (state.chapters.length > 0) gotoChapter(state.chapter + 1)
+      else view.scrollBy({ top: view.clientHeight * 0.9, behavior: 'smooth' })
+    }
+    if (event.key === 'ArrowLeft' || event.key === 'k' || event.key === 'K') {
+      if (state.chapters.length > 0) gotoChapter(state.chapter - 1)
+      else view.scrollBy({ top: -view.clientHeight * 0.9, behavior: 'smooth' })
+    }
+  })
+
+  view.addEventListener('scroll', function () {
+    clearTimeout(view._t); view._t = setTimeout(saveProgress, 400)
+  })
+
+  $('btnBooks').onclick = function () { loadBooks() }
+  $('btnTree').onclick = function () { loadTree(state.cwd) }
+  $('btnSettings').onclick = function () {
+    state.panel = !state.panel
+    $('panel').hidden = !state.panel
+    applySettings()
+  }
+  $('btnPrev').onclick = function () { gotoChapter(state.chapter - 1) }
+  $('btnNext').onclick = function () { gotoChapter(state.chapter + 1) }
+
+  var panel = $('panel')
+  panel.addEventListener('click', function (event) {
+    var button = event.target.closest('button')
+    if (!button) return
+    if (button.dataset.theme) {
+      try { LS.setItem('dsh-reader:theme', button.dataset.theme) } catch (e) { /* 忽略 */ }
+      applySettings(); return
+    }
+    if (button.dataset.size) { bump('dsh-reader:size', Number(button.dataset.size), 14, 30); return }
+    if (button.dataset.line) { bump('dsh-reader:line', Number(button.dataset.line) * 10, 130, 240) }
+  })
+
+  window.addEventListener('beforeunload', saveProgress)
+
+  applySettings()
+  loadRoots()
+})()
+</script>
+</body>
+</html>

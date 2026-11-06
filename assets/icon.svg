@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="dsh-reader">
+  <rect width="64" height="64" rx="14" fill="#1F2A44"/>
+  <!-- 左页 -->
+  <path d="M11.5 22.5a3.5 3.5 0 0 1 3.5-3.5h13.5v28.5H15a3.5 3.5 0 0 1-3.5-3.5z" fill="#EDEFF3"/>
+  <!-- 书脊（强调色） -->
+  <path d="M28.5 19h6v28.5h-6z" fill="#E8B05A"/>
+  <!-- 右页 / 侧栏面板 -->
+  <rect x="39.5" y="16" width="13.5" height="32" rx="3.5" fill="none" stroke="#EDEFF3" stroke-width="2"/>
+  <rect x="43.5" y="23" width="5.5" height="2" rx="1" fill="#EDEFF3"/>
+  <rect x="43.5" y="28.5" width="5.5" height="2" rx="1" fill="#EDEFF3"/>
+</svg>
