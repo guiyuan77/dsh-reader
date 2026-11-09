@@ -1,4 +1,4 @@
 - insert:
-    - id: dsh-reader
-      name: dsh-reader
+    - id: dsh-peek
+      name: dsh-peek
       config: {}

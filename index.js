@@ -1,5 +1,5 @@
 /**
- * dsh-reader — 宿主侧插件。
+ * dsh-peek — 宿主侧插件。
  *
  * 只做三件事，全部落在 dsh 自己的 webServer 上：
  *   1. `/reader`            一个自包含的阅读页（无外部请求，便于隐蔽）
@@ -12,7 +12,7 @@ import { createReadStream, promises as fsp } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const name = 'dsh-reader'
+export const name = 'dsh-peek'
 export const inject = ['webServer']
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -224,7 +224,7 @@ export function apply(ctx, config = {}) {
           return await handleApi(req, res)
         } catch (error) {
           const status = error?.status ?? 500
-          if (status >= 500) console.warn('[dsh-reader]', error)
+          if (status >= 500) console.warn('[dsh-peek]', error)
           return json(res, status, { error: error?.message ?? String(error) })
         }
       },

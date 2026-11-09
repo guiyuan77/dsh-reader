@@ -1,5 +1,5 @@
 {
-  "name": "dsh-reader",
+  "name": "dsh-peek",
   "version": "0.1.0",
   "private": true,
   "description": "Workspace reader for DeepSeek Harness: browses the workspaces registered in dsh and renders EPUB/TXT/MD/HTML/PDF with a one-key boss screen.",
@@ -43,6 +43,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/guiyuan77/dsh-reader.git"
+    "url": "git+https://github.com/guiyuan77/dsh-peek.git"
   }
 }

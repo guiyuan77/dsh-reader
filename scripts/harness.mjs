@@ -1,4 +1,4 @@
-// 本地冒烟 harness：用假 ctx 挂载 dsh-reader 的路由，不启动 dsh 也能验证。
+// 本地冒烟 harness：用假 ctx 挂载 dsh-peek 的路由，不启动 dsh 也能验证。
 // 用法：node scripts/harness.mjs [port] [workspaceRoot]
 import http from 'node:http'
 import fs from 'node:fs'
@@ -50,5 +50,5 @@ http.createServer((req, res) => {
     res.end('boom')
   })
 }).listen(PORT, '127.0.0.1', () => {
-  console.log(`dsh-reader harness → http://127.0.0.1:${PORT}/reader  (root: ${ROOT})`)
+  console.log(`dsh-peek harness → http://127.0.0.1:${PORT}/reader  (root: ${ROOT})`)
 })

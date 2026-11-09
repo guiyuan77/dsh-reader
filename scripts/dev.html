@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>dsh-reader dev</title>
+<title>dsh-peek dev</title>
 <style>
   body{margin:0;display:flex;height:100vh;background:#1b1d21;font-family:-apple-system,"Segoe UI",sans-serif}
   #host{width:420px;height:100%;border-right:1px solid #333;color:#c9cdd4;background:#fbfbf9;color:#23262b}
@@ -15,11 +15,11 @@
   这里只验证客户端 bundle 的阅读面板本身（用假 react，不经过 dsh 的 slot 系统）。<br>
   真实入口（右侧栏 tab / guide 卡片 / Esc 收起侧栏）只能在装进 dsh 后验证。
 </div>
-<script>window.__ModuleLoader__ = { load: (spec) => { window.__dshReaderSpec = spec } }</script>
+<script>window.__ModuleLoader__ = { load: (spec) => { window.__dshPeekSpec = spec } }</script>
 <script src="/__dev/client.js"></script>
 <script>
   const stub = { createElement: () => null, useRef: () => ({ current: null }), useEffect: () => {} }
-  const spec = window.__dshReaderSpec
+  const spec = window.__dshPeekSpec
   if (!spec) {
     document.getElementById('note').textContent = 'bundle 未注册 factory'
   } else {

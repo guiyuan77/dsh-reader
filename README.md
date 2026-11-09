@@ -1,4 +1,4 @@
-# dsh-reader
+# dsh-peek
 
 DeepSeek Harness 的**右侧栏阅读器**：在 dsh 的 Web GUI 里注册一个 `reader` 标签，点开就在右侧栏里读书——不跳页、不弹新窗口。文件取自 **dsh 自己注册的工作区**，渲染 EPUB / TXT / Markdown / HTML，PDF 交给浏览器原生查看器。
 
@@ -7,7 +7,7 @@ DeepSeek Harness 的**右侧栏阅读器**：在 dsh 的 Web GUI 里注册一个
 ## 安装
 
 ```powershell
-dsh plugin --profile web add github:guiyuan77/dsh-reader
+dsh plugin --profile web add github:guiyuan77/dsh-peek
 ```
 
 需要 dsh `0.2.x`。装完**重启 `dsh web`** 才生效——`plugin add` 会改写 profile 的 `package.json` 与 `node_modules`；跑着的会话 UI 会断开，会话记录不丢。
